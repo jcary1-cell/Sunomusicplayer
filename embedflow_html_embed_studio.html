@@ -1,0 +1,2159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmbedFlow — Embed Code Studio & Sharer</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.04);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.5);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(107, 114, 128, 0.8);
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col antialiased selection:bg-indigo-100 selection:text-indigo-900">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- Navigation / Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+          <i data-lucide="code-xml" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="font-bold text-lg text-slate-900 tracking-tight flex items-center gap-1.5">
+            EmbedFlow
+            <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium border border-indigo-100">Studio</span>
+          </span>
+          <p class="text-xs text-slate-500 hidden sm:block">Create, preview, and share responsive embed codes</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <button id="open-library-btn" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium transition shadow-xs">
+          <i data-lucide="folder" class="w-4 h-4 text-slate-500"></i>
+          <span>Library</span>
+          <span id="saved-count-badge" class="ml-1 text-xs px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded-full font-semibold">0</span>
+        </button>
+
+        <button id="quick-preset-btn" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium transition shadow-xs">
+          <i data-lucide="wand-sparkles" class="w-4 h-4 text-indigo-500"></i>
+          <span class="hidden sm:inline">Templates</span>
+        </button>
+
+        <button id="share-export-btn" class="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition shadow-sm shadow-indigo-200">
+          <i data-lucide="share-2" class="w-4 h-4"></i>
+          <span>Share & Export</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Left Column: Code Input & Editor Controls (5 Cols) -->
+    <section class="lg:col-span-5 flex flex-col space-y-4">
+      
+      <!-- Card: Editor Container -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[650px] overflow-hidden">
+        
+        <!-- Header Toolbar -->
+        <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="flex h-2.5 w-2.5 relative">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <span class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Embed Code Editor</span>
+          </div>
+
+          <div class="flex items-center space-x-1">
+            <button id="format-code-btn" title="Format/Clean Indent" class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-white rounded-md transition border border-transparent hover:border-slate-200">
+              <i data-lucide="align-left" class="w-4 h-4"></i>
+            </button>
+            <button id="clear-code-btn" title="Clear Editor" class="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-md transition">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+            <button id="copy-raw-btn" title="Copy raw code" class="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition">
+              <i data-lucide="copy" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Meta Input: Title and Tags -->
+        <div class="p-3 border-b border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50/30">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Snippet Title</label>
+            <input type="text" id="snippet-title" placeholder="e.g. YouTube Video, Spotify Player..." value="Interactive Demo Widget" class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white">
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Tags (comma separated)</label>
+            <input type="text" id="snippet-tags" placeholder="video, responsive, player" value="widget, demo" class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white">
+          </div>
+        </div>
+
+        <!-- Text Area / Code Input -->
+        <div class="relative flex-1 bg-slate-900 text-slate-100 flex flex-col font-mono text-xs">
+          <textarea id="code-input" spellcheck="false" placeholder="<!-- Paste your HTML, iframe, script tag, or custom component here -->" class="w-full h-full p-4 bg-transparent resize-none focus:outline-none leading-relaxed tracking-normal font-mono text-[13px] text-emerald-400 placeholder-slate-600 overflow-y-auto selection:bg-indigo-700"></textarea>
+          
+          <div class="px-4 py-2 bg-slate-950/80 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+            <span id="char-counter">0 characters</span>
+            <span class="flex items-center space-x-1.5 text-slate-400">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>Live sandboxed rendering</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Quick actions footer -->
+        <div class="p-3 bg-white border-t border-slate-200 flex items-center justify-between gap-2">
+          <button id="save-snippet-btn" class="w-full py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center space-x-1.5 transition">
+            <i data-lucide="bookmark" class="w-4 h-4 text-slate-500"></i>
+            <span>Save to Library</span>
+          </button>
+          <button id="generate-iframe-wrapper-btn" class="w-full py-2 px-3 rounded-lg border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100/60 text-indigo-700 text-xs font-semibold flex items-center justify-center space-x-1.5 transition">
+            <i data-lucide="layers" class="w-4 h-4 text-indigo-600"></i>
+            <span>Wrap in Responsive Box</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Quick Tips Card -->
+      <div class="bg-indigo-50/60 rounded-xl p-4 border border-indigo-100 text-xs text-indigo-950 flex items-start space-x-3">
+        <i data-lucide="lightbulb" class="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5"></i>
+        <div>
+          <p class="font-semibold text-indigo-900">Embedding Tip:</p>
+          <p class="text-indigo-800/80 mt-0.5 leading-relaxed">
+            Ensure external iframes specify <code class="bg-indigo-100/80 px-1 py-0.5 rounded font-mono text-[11px]">loading="lazy"</code> and full permissions (e.g., <code class="bg-indigo-100/80 px-1 py-0.5 rounded font-mono text-[11px]">allowfullscreen</code>) for smoother embed performance.
+          </p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Right Column: Interactive Live Preview & Device Switcher (7 Cols) -->
+    <section class="lg:col-span-7 flex flex-col space-y-4">
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[650px] overflow-hidden">
+        
+        <!-- Preview Toolbar -->
+        <div class="px-4 py-2.5 bg-slate-50/90 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+          
+          <!-- Device Mode Selector -->
+          <div class="flex items-center space-x-1 bg-slate-200/80 p-0.5 rounded-lg text-slate-600">
+            <button id="device-desktop" class="device-btn active px-2.5 py-1 rounded-md text-xs font-medium bg-white text-slate-800 shadow-xs flex items-center space-x-1.5 transition">
+              <i data-lucide="monitor" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">100%</span>
+            </button>
+            <button id="device-tablet" class="device-btn px-2.5 py-1 rounded-md text-xs font-medium hover:text-slate-900 flex items-center space-x-1.5 transition">
+              <i data-lucide="tablet" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">768px</span>
+            </button>
+            <button id="device-mobile" class="device-btn px-2.5 py-1 rounded-md text-xs font-medium hover:text-slate-900 flex items-center space-x-1.5 transition">
+              <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">375px</span>
+            </button>
+          </div>
+
+          <!-- Sandbox and Control Toggles -->
+          <div class="flex items-center space-x-2">
+            <button id="refresh-preview-btn" title="Reload Preview" class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-md transition">
+              <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+            </button>
+            <button id="popout-preview-btn" title="Open Clean Preview in New Tab" class="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition">
+              <i data-lucide="external-link" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Preview Stage Background -->
+        <div id="preview-stage" class="flex-1 bg-slate-100 p-3 sm:p-6 flex items-center justify-center overflow-auto">
+          
+          <!-- Embedded Iframe wrapper simulating canvas/device -->
+          <div id="preview-container" class="w-full h-full bg-white rounded-xl shadow-md border border-slate-200 transition-all duration-300 relative flex flex-col overflow-hidden">
+            <!-- Simulated Browser Bar (Mobile/Tablet hint) -->
+            <div id="simulated-bar" class="hidden px-3 py-1.5 bg-slate-50 border-b border-slate-200 items-center justify-between text-[11px] text-slate-400">
+              <div class="flex items-center space-x-1">
+                <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+              </div>
+              <span id="preview-viewport-label" class="font-mono text-[10px] text-slate-500">Responsive Viewport</span>
+              <div class="w-6"></div>
+            </div>
+
+            <!-- The Render Sandbox Frame -->
+            <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation" class="w-full h-full border-0 bg-white"></iframe>
+          </div>
+
+        </div>
+
+        <!-- Preview Status Bar -->
+        <div class="px-4 py-2 bg-white border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-500"></i>
+            <span>Preview synchronized</span>
+          </div>
+          <span class="text-slate-400 text-[11px]">Sandboxed iframe isolation</span>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL: Templates & Generators -->
+  <div id="template-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+            <i data-lucide="layout-grid" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">Embed Code Templates</h3>
+            <p class="text-xs text-slate-500">Choose a pre-built template to quickly customize and share</p>
+          </div>
+        </div>
+        <button class="modal-close-btn p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto">
+        
+        <!-- YouTube -->
+        <button data-template="youtube" class="template-card text-left p-3.5 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition flex items-start space-x-3 group">
+          <div class="p-2 rounded-lg bg-red-50 text-red-600 group-hover:scale-105 transition">
+            <i data-lucide="youtube" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold text-slate-900">YouTube Video</h4>
+            <p class="text-xs text-slate-500 mt-0.5">Responsive 16:9 player with auto-ratio wrapping.</p>
+          </div>
+        </button>
+
+        <!-- Vimeo -->
+        <button data-template="vimeo" class="template-card text-left p-3.5 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition flex items-start space-x-3 group">
+          <div class="p-2 rounded-lg bg-sky-50 text-sky-500 group-hover:scale-105 transition">
+            <i data-lucide="video" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold text-slate-900">Vimeo Video</h4>
+            <p class="text-xs text-slate-500 mt-0.5">Clean video player with autoplay control.</p>
+          </div>
+        </button>
+
+        <!-- Spotify -->
+        <button data-template="spotify" class="template-card text-left p-3.5 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition flex items-start space-x-3 group">
+          <div class="p-2 rounded-lg bg-emerald-50 text-emerald-600 group-hover:scale-105 transition">
+            <i data-lucide="music" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold text-slate-900">Spotify Audio Player</h4>
+            <p class="text-xs text-slate-500 mt-0.5">Compact track, playlist or album widget.</p>
+          </div>
+        </button>
+
+        <!-- Google Maps -->
+        <button data-template="map" class="template-card text-left p-3.5 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition flex items-start space-x-3 group">
+          <div class="p-2 rounded-lg bg-amber-50 text-amber-600 group-hover:scale-105 transition">
+            <i data-lucide="map-pin" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold text-slate-900">Google Map</h4>
+            <p class="text-xs text-slate-500 mt-0.5">Interactive location pinpoint embed.</p>
+          </div>
+        </button>
+
+        <!-- Card Widget -->
+        <button data-template="card" class="template-card text-left p-3.5 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition flex items-start space-x-3 group">
+          <div class="p-2 rounded-lg bg-violet-50 text-violet-600 group-hover:scale-105 transition">
+            <i data-lucide="credit-card" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold text-slate-900">Interactive Callout Card</h4>
+            <p class="text-xs text-slate-500 mt-0.5">Modern card with dynamic badge & button.</p>
+          </div>
+        </button>
+
+        <!-- Live Clock / Dynamic Widget -->
+        <button data-template="widget" class="template-card text-left p-3.5 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition flex items-start space-x-3 group">
+          <div class="p-2 rounded-lg bg-teal-50 text-teal-600 group-hover:scale-105 transition">
+            <i data-lucide="clock" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold text-slate-900">Dynamic Mini Widget</h4>
+            <p class="text-xs text-slate-500 mt-0.5">HTML + CSS + JS interactive mini-app.</p>
+          </div>
+        </button>
+
+      </div>
+
+      <div class="px-6 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+        <button class="modal-close-btn px-4 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Share & Export Hub -->
+  <div id="share-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+            <i data-lucide="send" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">Share & Export Embed</h3>
+            <p class="text-xs text-slate-500">Distribute your code as a link, responsive wrapper, or file</p>
+          </div>
+        </div>
+        <button class="modal-close-btn p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        
+        <!-- Share Link -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+            <span>Direct Sharable Link (Encodes Code in URL)</span>
+            <span class="text-[11px] text-indigo-600 font-normal">Works instantly anywhere</span>
+          </label>
+          <div class="flex items-center space-x-2">
+            <input type="text" id="share-link-input" readonly class="w-full text-xs font-mono px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 focus:outline-none">
+            <button id="copy-share-link-btn" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 shrink-0 transition">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Clean Iframe Snippet for blogs/web builders -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Clean Iframe Embed Tag (For Webflow, WordPress, Notion, Squarespace)</label>
+          <div class="relative">
+            <textarea id="share-iframe-snippet" rows="3" readonly class="w-full text-xs font-mono p-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 focus:outline-none resize-none"></textarea>
+            <button id="copy-iframe-snippet-btn" class="absolute top-2 right-2 px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-md text-[11px] font-medium flex items-center space-x-1 shadow-xs transition">
+              <i data-lucide="copy" class="w-3 h-3"></i>
+              <span>Copy Embed</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Download Buttons -->
+        <div class="pt-2 flex flex-col sm:flex-row gap-2.5">
+          <button id="download-html-file-btn" class="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center space-x-2 transition">
+            <i data-lucide="download" class="w-4 h-4 text-slate-500"></i>
+            <span>Download Standalone .HTML</span>
+          </button>
+          <button id="open-isolated-btn" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center space-x-2 transition">
+            <i data-lucide="external-link" class="w-4 h-4 text-slate-500"></i>
+            <span>Test Isolated View</span>
+          </button>
+        </div>
+
+      </div>
+
+      <div class="px-6 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+        <button class="modal-close-btn px-4 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL / DRAWER: Saved Library -->
+  <div id="library-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[80vh]">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+            <i data-lucide="folder-git-2" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">Saved Embed Snippets</h3>
+            <p class="text-xs text-slate-500">Stored in your browser's local library</p>
+          </div>
+        </div>
+        <button class="modal-close-btn p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Search & Filters -->
+      <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+          <input type="text" id="library-search-input" placeholder="Search by title or tags..." class="w-full text-xs pl-9 pr-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+        </div>
+      </div>
+
+      <!-- Snippet List -->
+      <div id="library-list" class="p-4 space-y-2.5 overflow-y-auto flex-1">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Library Footer -->
+      <div class="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+        <button id="clear-library-btn" class="text-xs text-rose-600 hover:text-rose-700 font-medium">Clear All Saved</button>
+        <button class="modal-close-btn px-4 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+      <div class="flex items-center space-x-2">
+        <span>EmbedFlow Studio</span>
+        <span>&bull;</span>
+        <span>Secure Sandboxed Code Sharing</span>
+      </div>
+      <div>
+        <span>Paste any HTML embed &bull; Share seamlessly with responsive wrappers</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Logic -->
+  <script>
+    // Templates definitions
+    const TEMPLATES = {
+      youtube: `<!-- YouTube Responsive Embed -->
+<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+  <iframe 
+    src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" 
+    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;" 
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+    allowfullscreen>
+  </iframe>
+</div>`,
+
+      vimeo: `<!-- Vimeo Responsive Embed -->
+<div style="position:relative; padding-top:56.25%; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+  <iframe 
+    src="https://player.vimeo.com/video/76979871?h=8272103f6e&title=0&byline=0&portrait=0" 
+    style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" 
+    allow="autoplay; fullscreen; picture-in-picture" 
+    allowfullscreen>
+  </iframe>
+</div>`,
+
+      spotify: `<!-- Spotify Music Player Widget -->
+<iframe 
+  style="border-radius:12px; border:0; width:100%; height:352px; box-shadow: 0 4px 10px rgba(0,0,0,0.08);" 
+  src="https://open.spotify.com/embed/track/4cOdK2wGLETKBW3PvgPWqT?utm_source=generator" 
+  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+  loading="lazy">
+</iframe>`,
+
+      map: `<!-- Google Maps Responsive Embed -->
+<div style="width: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+  <iframe 
+    width="100%" 
+    height="380" 
+    style="border:0;" 
+    loading="lazy" 
+    allowfullscreen 
+    referrerpolicy="no-referrer-when-downgrade" 
+    src="https://maps.google.com/maps?q=Eiffel+Tower+Paris&t=&z=13&ie=UTF8&iwloc=&output=embed">
+  </iframe>
+</div>`,
+
+      card: `<!-- Interactive Promo Card Widget -->
+<div style="max-width: 480px; margin: 20px auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff; padding: 28px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.3);">
+  <div style="display: inline-block; background: rgba(255, 255, 255, 0.2); padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
+    Featured Embed
+  </div>
+  <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 700;">Special Product Showcase</h3>
+  <p style="margin: 0 0 18px 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
+    Easily integrate high converting callout widgets directly inside any web page or CMS platform.
+  </p>
+  <button onclick="this.innerText='Thank you! 🎉'; this.style.backgroundColor='#10b981';" style="background-color: #ffffff; color: #4338ca; border: none; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+    Explore Showcase
+  </button>
+</div>`,
+
+      widget: `<!-- Dynamic Live Clock & Counter Widget -->
+<div style="text-align: center; padding: 24px; font-family: system-ui, -apple-system, sans-serif; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); max-width: 380px; margin: 20px auto;">
+  <span style="font-size: 12px; font-weight: 600; color: #6366f1; text-transform: uppercase;">Live Widget</span>
+  <h2 id="live-clock" style="font-size: 32px; font-weight: 800; color: #0f172a; margin: 12px 0 6px 0; font-family: monospace;">00:00:00</h2>
+  <p style="font-size: 13px; color: #64748b; margin: 0 0 16px 0;">Synchronized time preview</p>
+  <button id="tap-btn" style="background: #4f46e5; color: #fff; border: 0; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
+    Taps: <span id="tap-count">0</span>
+  </button>
+
+  <script>
+    function updateClock() {
+      const el = document.getElementById('live-clock');
+      if (el) el.innerText = new Date().toLocaleTimeString();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    let count = 0;
+    const btn = document.getElementById('tap-btn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        count++;
+        document.getElementById('tap-count').innerText = count;
+      });
+    }
+  <\/script>
+</div>`
+    };
+
+    // State
+    const state = {
+      code: '',
+      title: 'Interactive Demo Widget',
+      tags: 'widget, demo',
+      savedSnippets: [],
+      deviceMode: 'desktop' // desktop, tablet, mobile
+    };
+
+    // DOM Elements
+    const codeInput = document.getElementById('code-input');
+    const snippetTitleInput = document.getElementById('snippet-title');
+    const snippetTagsInput = document.getElementById('snippet-tags');
+    const previewFrame = document.getElementById('preview-frame');
+    const previewContainer = document.getElementById('preview-container');
+    const simulatedBar = document.getElementById('simulated-bar');
+    const charCounter = document.getElementById('char-counter');
+    const savedCountBadge = document.getElementById('saved-count-badge');
+    const toastContainer = document.getElementById('toast-container');
+
+    // Modals
+    const templateModal = document.getElementById('template-modal');
+    const shareModal = document.getElementById('share-modal');
+    const libraryModal = document.getElementById('library-modal');
+
+    // Share Modal Elements
+    const shareLinkInput = document.getElementById('share-link-input');
+    const shareIframeSnippet = document.getElementById('share-iframe-snippet');
+
+    // Initialize application
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadLibraryFromStorage();
+
+      // Check URL hash for shared code payload
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#data=')) {
+        try {
+          const raw = hash.replace('#data=', '');
+          const decoded = decodeURIComponent(escape(atob(raw)));
+          const parsed = JSON.parse(decoded);
+          state.code = parsed.code || '';
+          state.title = parsed.title || 'Shared Embed';
+          state.tags = parsed.tags || 'shared';
+          snippetTitleInput.value = state.title;
+          snippetTagsInput.value = state.tags;
+          showToast('Loaded shared snippet from URL!', 'success');
+        } catch (e) {
+          console.warn('Could not parse hash payload:', e);
+          state.code = TEMPLATES.card;
+        }
+      } else {
+        // Default starting template
+        state.code = TEMPLATES.card;
+      }
+
+      codeInput.value = state.code;
+      updateEditorAndPreview();
+      setupEventListeners();
+    });
+
+    // Update Preview Iframe
+    function updateEditorAndPreview() {
+      state.code = codeInput.value;
+      state.title = snippetTitleInput.value.trim() || 'Untitled Snippet';
+      state.tags = snippetTagsInput.value.trim();
+
+      charCounter.innerText = `${state.code.length.toLocaleString()} characters`;
+
+      // Render into iframe
+      const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+      doc.open();
+      // Inject basic reset and viewport inside iframe for modern responsive display
+      doc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body {
+              margin: 0;
+              padding: 16px;
+              box-sizing: border-box;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              min-height: calc(100vh - 32px);
+              background-color: transparent;
+            }
+            * { box-sizing: border-box; }
+          </style>
+        </head>
+        <body>
+          <div style="width: 100%; max-width: 100%;">
+            ${state.code}
+          </div>
+        </body>
+        </html>
+      `);
+      doc.close();
+    }
+
+    // Set Device Preview Size
+    function setDeviceMode(mode) {
+      state.deviceMode = mode;
+      document.querySelectorAll('.device-btn').forEach(btn => {
+        btn.classList.remove('bg-white', 'text-slate-800', 'shadow-xs');
+        btn.classList.add('text-slate-600');
+      });
+
+      const activeBtn = document.getElementById(`device-${mode}`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-white', 'text-slate-800', 'shadow-xs');
+        activeBtn.classList.remove('text-slate-600');
+      }
+
+      if (mode === 'desktop') {
+        previewContainer.style.maxWidth = '100%';
+        previewContainer.style.height = '100%';
+        simulatedBar.classList.add('hidden');
+        simulatedBar.classList.remove('flex');
+      } else if (mode === 'tablet') {
+        previewContainer.style.maxWidth = '768px';
+        previewContainer.style.height = '95%';
+        simulatedBar.classList.remove('hidden');
+        simulatedBar.classList.add('flex');
+        document.getElementById('preview-viewport-label').innerText = 'Tablet (768px)';
+      } else if (mode === 'mobile') {
+        previewContainer.style.maxWidth = '375px';
+        previewContainer.style.height = '95%';
+        simulatedBar.classList.remove('hidden');
+        simulatedBar.classList.add('flex');
+        document.getElementById('preview-viewport-label').innerText = 'Mobile (375px)';
+      }
+    }
+
+    // Wrap snippet into a responsive container
+    function wrapCodeInResponsiveContainer() {
+      const current = codeInput.value.trim();
+      if (!current) return;
+
+      const wrapped = `<!-- EmbedFlow Responsive Container -->
+<div style="width: 100%; max-width: 800px; margin: 0 auto; padding: 12px; box-sizing: border-box;">
+  <div style="position: relative; width: 100%; overflow: hidden; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: #ffffff;">
+    ${current}
+  </div>
+</div>`;
+      codeInput.value = wrapped;
+      updateEditorAndPreview();
+      showToast('Wrapped with responsive layout!', 'success');
+    }
+
+    // Copy to clipboard helper using execCommand for sandbox/iframe reliability
+    function copyTextToClipboard(text, successMsg = 'Copied to clipboard!') {
+      try {
+        const tempTextarea = document.createElement('textarea');
+        tempTextarea.value = text;
+        tempTextarea.style.position = 'fixed';
+        tempTextarea.style.opacity = '0';
+        document.body.appendChild(tempTextarea);
+        tempTextarea.focus();
+        tempTextarea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(tempTextarea);
+        if (successful) {
+          showToast(successMsg, 'success');
+        } else {
+          showToast('Could not copy automatically.', 'error');
+        }
+      } catch (err) {
+        showToast('Error copying to clipboard', 'error');
+      }
+    }
+
+    // Toast UI
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      const icon = type === 'success' ? 'check-circle-2' : type === 'error' ? 'alert-triangle' : 'info';
+      const bg = type === 'success' ? 'bg-slate-900 text-white' : type === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-white';
+
+      toast.className = `${bg} px-4 py-3 rounded-xl shadow-lg border border-slate-700 text-xs font-medium flex items-center space-x-2.5 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto`;
+      toast.innerHTML = `
+        <i data-lucide="${icon}" class="w-4 h-4 text-emerald-400"></i>
+        <span>${message}</span>
+      `;
+
+      toastContainer.appendChild(toast);
+      lucide.createIcons({ root: toast });
+
+      // Animate in
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      // Dismiss after 3s
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+
+    // Library Storage
+    function loadLibraryFromStorage() {
+      try {
+        const raw = localStorage.getItem('embedflow_library');
+        state.savedSnippets = raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        state.savedSnippets = [];
+      }
+      updateSavedCount();
+    }
+
+    function saveLibraryToStorage() {
+      try {
+        localStorage.setItem('embedflow_library', JSON.stringify(state.savedSnippets));
+      } catch (e) {
+        console.error('Storage full or unavailable', e);
+      }
+      updateSavedCount();
+    }
+
+    function updateSavedCount() {
+      savedCountBadge.innerText = state.savedSnippets.length;
+    }
+
+    function saveCurrentSnippet() {
+      const code = codeInput.value.trim();
+      if (!code) {
+        showToast('Cannot save empty embed code!', 'error');
+        return;
+      }
+      const title = snippetTitleInput.value.trim() || 'Untitled Embed';
+      const tags = snippetTagsInput.value.trim() || 'embed';
+
+      const newSnippet = {
+        id: 'snip_' + Date.now(),
+        title,
+        tags,
+        code,
+        createdAt: new Date().toLocaleDateString()
+      };
+
+      state.savedSnippets.unshift(newSnippet);
+      saveLibraryToStorage();
+      showToast(`Saved "${title}" to your library!`, 'success');
+    }
+
+    function renderLibrary(filterText = '') {
+      const container = document.getElementById('library-list');
+      container.innerHTML = '';
+
+      const query = filterText.toLowerCase();
+      const filtered = state.savedSnippets.filter(item => 
+        item.title.toLowerCase().includes(query) || 
+        item.tags.toLowerCase().includes(query)
+      );
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-slate-400">
+            <i data-lucide="inbox" class="w-10 h-10 mx-auto mb-2 text-slate-300"></i>
+            <p class="text-xs font-medium">No snippets found.</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Save your embeds to access them anytime here.</p>
+          </div>
+        `;
+        lucide.createIcons({ root: container });
+        return;
+      }
+
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'p-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-xs transition flex flex-col sm:flex-row sm:items-center justify-between gap-2.5';
+        card.innerHTML = `
+          <div class="overflow-hidden">
+            <h4 class="text-xs font-bold text-slate-900 truncate">${escapeHtml(item.title)}</h4>
+            <div class="flex items-center space-x-2 mt-1">
+              <span class="text-[10px] text-slate-400">${item.createdAt}</span>
+              <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium truncate max-w-[200px]">${escapeHtml(item.tags)}</span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-1.5 shrink-0 self-end sm:self-auto">
+            <button data-load-id="${item.id}" class="load-btn px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold flex items-center space-x-1">
+              <i data-lucide="play" class="w-3.5 h-3.5"></i>
+              <span>Load</span>
+            </button>
+            <button data-delete-id="${item.id}" class="delete-btn p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      lucide.createIcons({ root: container });
+
+      // Add event listeners for load and delete
+      container.querySelectorAll('.load-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-load-id');
+          const target = state.savedSnippets.find(s => s.id === id);
+          if (target) {
+            codeInput.value = target.code;
+            snippetTitleInput.value = target.title;
+            snippetTagsInput.value = target.tags;
+            updateEditorAndPreview();
+            closeAllModals();
+            showToast(`Loaded "${target.title}"`, 'success');
+          }
+        });
+      });
+
+      container.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-delete-id');
+          state.savedSnippets = state.savedSnippets.filter(s => s.id !== id);
+          saveLibraryToStorage();
+          renderLibrary(document.getElementById('library-search-input').value);
+          showToast('Snippet removed', 'info');
+        });
+      });
+    }
+
+    function escapeHtml(string) {
+      return String(string)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Generate Share link & Snippets
+    function prepareShareHub() {
+      const code = codeInput.value;
+      const title = snippetTitleInput.value.trim() || 'Embed';
+      const tags = snippetTagsInput.value.trim();
+
+      // 1. URL encoded state
+      try {
+        const payload = JSON.stringify({ title, tags, code });
+        const encoded = btoa(unescape(encodeURIComponent(payload)));
+        const shareUrl = `${window.location.origin}${window.location.pathname}#data=${encoded}`;
+        shareLinkInput.value = shareUrl;
+      } catch (err) {
+        shareLinkInput.value = window.location.href;
+      }
+
+      // 2. Standard iframe embed snippet
+      // Generates an iframe code pointing to a data-uri or sandbox
+      const encodedCodeUri = 'data:text/html;charset=utf-8,' + encodeURIComponent(code);
+      const iframeMarkup = `<iframe src="${encodedCodeUri}" style="width:100%; border:none; min-height:420px; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.05);" loading="lazy"></iframe>`;
+      shareIframeSnippet.value = iframeMarkup;
+
+      shareModal.classList.remove('hidden');
+    }
+
+    function downloadAsHtmlFile() {
+      const code = codeInput.value;
+      const title = snippetTitleInput.value.trim() || 'embedded-content';
+      const filename = `${title.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'embed'}.html`;
+
+      const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmbedFlow — Avant-Garde Embed Studio & Sharer</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Playfair+Display:ital,wght@0,600;0,800;1,500&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+    :root {
+      --art-cream: #FAF5E9;
+      --art-yellow: #F6CE38;
+      --art-amber: #E8881A;
+      --art-red: #D7262E;
+      --art-magenta: #9E2B6C;
+      --art-blue: #1B4E9B;
+      --art-cyan: #3EA6D6;
+      --art-emerald: #146B42;
+      --art-ink: #111317;
+      --art-border: #181A1F;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #F7F1E1;
+      background-image: 
+        radial-gradient(#d3c7a6 1px, transparent 1px),
+        linear-gradient(to bottom, #F9F5EC, #F2E8D2);
+      background-size: 24px 24px, 100% 100%;
+      color: var(--art-ink);
+    }
+
+    .font-serif-art {
+      font-family: 'Playfair Display', serif;
+    }
+
+    .font-display-art {
+      font-family: 'Cinzel', serif;
+    }
+
+    .font-mono-art {
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* Art Deco / Avant-Garde Mosaic borders */
+    .mosaic-frame {
+      border: 3px solid var(--art-border);
+      box-shadow: 6px 6px 0px var(--art-border);
+      position: relative;
+    }
+
+    .mosaic-frame-sm {
+      border: 2px solid var(--art-border);
+      box-shadow: 4px 4px 0px var(--art-border);
+    }
+
+    /* Folkloric avant-garde decorative stripe */
+    .art-ribbon {
+      background: repeating-linear-gradient(
+        -45deg,
+        #D7262E,
+        #D7262E 12px,
+        #F6CE38 12px,
+        #F6CE38 24px,
+        #1B4E9B 24px,
+        #1B4E9B 36px,
+        #146B42 36px,
+        #146B42 48px,
+        #9E2B6C 48px,
+        #9E2B6C 60px
+      );
+    }
+
+    .art-chevron {
+      background: linear-gradient(135deg, #1B4E9B 25%, transparent 25%) -12px 0,
+                  linear-gradient(225deg, #1B4E9B 25%, transparent 25%) -12px 0,
+                  linear-gradient(315deg, #D7262E 25%, transparent 25%),
+                  linear-gradient(45deg, #D7262E 25%, #F6CE38 25%);
+      background-size: 24px 24px;
+      background-color: #F6CE38;
+    }
+
+    /* Stylized scrollbars */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #EFE7D2;
+      border-left: 2px solid #181A1F;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D7262E;
+      border: 2px solid #181A1F;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #9E2B6C;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-[#F6CE38] selection:text-[#181A1F]">
+
+  <!-- Top Mosaic Art Trim -->
+  <div class="h-3 w-full art-ribbon border-b-2 border-[#181A1F]"></div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- Navigation / Header -->
+  <header class="bg-[#FAF5E9] border-b-4 border-[#181A1F] sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+      
+      <!-- Brand Logo / Title inspired by Ballets Russes & Russian Avant-Garde -->
+      <div class="flex items-center space-x-3.5">
+        <div class="h-12 w-12 rounded-xl border-3 border-[#181A1F] bg-[#D7262E] flex items-center justify-center text-white shadow-[3px_3px_0px_#181A1F] relative overflow-hidden group">
+          <!-- Geometric inner art shapes -->
+          <div class="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-[#F6CE38] border-2 border-[#181A1F]"></div>
+          <div class="absolute -bottom-2 -left-2 w-7 h-7 bg-[#1B4E9B] rotate-45 border-2 border-[#181A1F]"></div>
+          <i data-lucide="sparkles" class="w-6 h-6 text-[#FAF5E9] relative z-10"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-display-art font-black text-2xl tracking-wider text-[#181A1F]">EMBEDFLOW</span>
+            <span class="text-[10px] font-mono-art px-2 py-0.5 rounded-md bg-[#1B4E9B] text-white border-2 border-[#181A1F] font-bold tracking-widest uppercase">Atelier</span>
+          </div>
+          <p class="text-xs text-[#6B5E43] font-serif-art italic hidden sm:block">Aesthetic studio for embedding, previewing & sharing web tapestries</p>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <button id="open-library-btn" class="mosaic-frame-sm bg-[#FAF5E9] hover:bg-[#F2E5C4] text-[#181A1F] px-3.5 py-1.5 rounded-lg text-xs font-bold font-mono-art flex items-center space-x-1.5 transition active:translate-x-0.5 active:translate-y-0.5">
+          <i data-lucide="layers" class="w-4 h-4 text-[#9E2B6C]"></i>
+          <span>FOLIO</span>
+          <span id="saved-count-badge" class="ml-1 text-[10px] px-1.5 py-0.2 bg-[#F6CE38] border border-[#181A1F] rounded-full font-bold">0</span>
+        </button>
+
+        <button id="quick-preset-btn" class="mosaic-frame-sm bg-[#F6CE38] hover:bg-[#ebd25b] text-[#181A1F] px-3.5 py-1.5 rounded-lg text-xs font-bold font-mono-art flex items-center space-x-1.5 transition active:translate-x-0.5 active:translate-y-0.5">
+          <i data-lucide="palette" class="w-4 h-4 text-[#D7262E]"></i>
+          <span class="hidden sm:inline">MOTIFS</span>
+        </button>
+
+        <button id="share-export-btn" class="mosaic-frame-sm bg-[#D7262E] hover:bg-[#bf1c24] text-white px-4 py-1.5 rounded-lg text-xs font-bold font-mono-art flex items-center space-x-1.5 transition active:translate-x-0.5 active:translate-y-0.5">
+          <i data-lucide="share-2" class="w-4 h-4 text-[#F6CE38]"></i>
+          <span>SHARE &amp; DISPATCH</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Decorative Illustrated Mosaic Strip inspired by the bottom panels of the artwork -->
+  <div class="bg-[#181A1F] py-2 px-4 border-b-4 border-[#181A1F] overflow-hidden">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4 text-white text-[11px] font-mono-art uppercase tracking-widest overflow-x-auto">
+      <div class="flex items-center space-x-2 shrink-0">
+        <span class="w-3.5 h-3.5 rounded-full bg-[#D7262E] border border-white"></span>
+        <span class="text-[#F6CE38] font-bold">Cinnabar</span>
+      </div>
+      <div class="flex items-center space-x-2 shrink-0">
+        <span class="w-3.5 h-3.5 bg-[#1B4E9B] rotate-45 border border-white"></span>
+        <span class="text-[#FAF5E9]">Cobalt Ultramarine</span>
+      </div>
+      <div class="flex items-center space-x-2 shrink-0">
+        <span class="w-3.5 h-3.5 rounded-full bg-[#146B42] border border-white"></span>
+        <span class="text-[#A4E0B6]">Veronese Green</span>
+      </div>
+      <div class="flex items-center space-x-2 shrink-0">
+        <span class="w-3.5 h-3.5 bg-[#9E2B6C] border border-white"></span>
+        <span class="text-[#F6A0D5]">Orchid Magenta</span>
+      </div>
+      <div class="flex items-center space-x-2 shrink-0">
+        <span class="w-3.5 h-3.5 rounded-full bg-[#F6CE38] border border-white"></span>
+        <span class="text-[#FAF5E9]">Marigold Gold</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Atelier Layout -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Left Column: Code Input & Editor Controls (5 Cols) -->
+    <section class="lg:col-span-5 flex flex-col space-y-5">
+      
+      <!-- Card: Editor Container -->
+      <div class="mosaic-frame bg-[#FAF5E9] rounded-2xl flex flex-col h-[670px] overflow-hidden">
+        
+        <!-- Header Toolbar -->
+        <div class="px-4 py-3 bg-[#EFE6CE] border-b-3 border-[#181A1F] flex items-center justify-between">
+          <div class="flex items-center space-x-2.5">
+            <div class="flex space-x-1">
+              <span class="w-3 h-3 rounded-full bg-[#D7262E] border border-[#181A1F]"></span>
+              <span class="w-3 h-3 rounded-full bg-[#F6CE38] border border-[#181A1F]"></span>
+              <span class="w-3 h-3 rounded-full bg-[#1B4E9B] border border-[#181A1F]"></span>
+            </div>
+            <span class="font-display-art font-black text-xs text-[#181A1F] tracking-wider uppercase">Canvas Code Inscription</span>
+          </div>
+
+          <div class="flex items-center space-x-1">
+            <button id="format-code-btn" title="Align Structure" class="p-1.5 text-[#181A1F] hover:bg-[#FAF5E9] rounded-lg transition border border-transparent hover:border-[#181A1F]">
+              <i data-lucide="align-left" class="w-4 h-4"></i>
+            </button>
+            <button id="clear-code-btn" title="Purge Editor" class="p-1.5 text-[#181A1F] hover:text-[#D7262E] hover:bg-[#FBEBEB] rounded-lg transition border border-transparent hover:border-[#181A1F]">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+            <button id="copy-raw-btn" title="Copy raw code" class="p-1.5 text-[#181A1F] hover:text-[#1B4E9B] hover:bg-[#E8F0FE] rounded-lg transition border border-transparent hover:border-[#181A1F]">
+              <i data-lucide="copy" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Meta Input: Title and Tags -->
+        <div class="p-3.5 border-b-3 border-[#181A1F] grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#FBF7EE]">
+          <div>
+            <label class="block text-[10px] font-mono-art font-bold text-[#6B5E43] uppercase tracking-wider mb-1">Motif Title</label>
+            <input type="text" id="snippet-title" placeholder="e.g. Ballets Russes Showcase..." value="Avant-Garde Showcase" class="w-full text-xs font-mono-art px-3 py-2 rounded-lg border-2 border-[#181A1F] bg-white text-[#181A1F] focus:outline-none focus:bg-[#FFFDEB]">
+          </div>
+          <div>
+            <label class="block text-[10px] font-mono-art font-bold text-[#6B5E43] uppercase tracking-wider mb-1">Keywords / Tags</label>
+            <input type="text" id="snippet-tags" placeholder="art, music, card" value="fauvism, showcase" class="w-full text-xs font-mono-art px-3 py-2 rounded-lg border-2 border-[#181A1F] bg-white text-[#181A1F] focus:outline-none focus:bg-[#FFFDEB]">
+          </div>
+        </div>
+
+        <!-- Text Area / Code Input with Avant-Garde Ink aesthetic -->
+        <div class="relative flex-1 bg-[#181A1F] text-[#FAF5E9] flex flex-col font-mono-art text-xs border-b-3 border-[#181A1F]">
+          <textarea id="code-input" spellcheck="false" placeholder="<!-- Paste your HTML, iframe, media embed, or styled elements here -->" class="w-full h-full p-4 bg-transparent resize-none focus:outline-none leading-relaxed tracking-normal font-mono-art text-[13px] text-[#F6CE38] placeholder-[#717786] overflow-y-auto selection:bg-[#D7262E] selection:text-white"></textarea>
+          
+          <div class="px-4 py-2 bg-[#0E1013] border-t-2 border-[#292D35] text-[11px] text-[#B0B7C6] flex items-center justify-between font-mono-art">
+            <span id="char-counter">0 characters</span>
+            <span class="flex items-center space-x-1.5 text-[#A4E0B6]">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-[#146B42]"></i>
+              <span>Isolated Sandbox Frame</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Quick actions footer -->
+        <div class="p-3 bg-[#EFE6CE] flex items-center justify-between gap-3">
+          <button id="save-snippet-btn" class="w-full py-2.5 px-3 rounded-lg bg-[#FAF5E9] hover:bg-[#F5ECD5] text-[#181A1F] border-2 border-[#181A1F] shadow-[2px_2px_0px_#181A1F] active:translate-x-0.5 active:translate-y-0.5 text-xs font-bold font-mono-art flex items-center justify-center space-x-1.5 transition">
+            <i data-lucide="bookmark" class="w-4 h-4 text-[#D7262E]"></i>
+            <span>Commit to Folio</span>
+          </button>
+          <button id="generate-iframe-wrapper-btn" class="w-full py-2.5 px-3 rounded-lg bg-[#1B4E9B] hover:bg-[#153e7c] text-white border-2 border-[#181A1F] shadow-[2px_2px_0px_#181A1F] active:translate-x-0.5 active:translate-y-0.5 text-xs font-bold font-mono-art flex items-center justify-center space-x-1.5 transition">
+            <i data-lucide="box" class="w-4 h-4 text-[#F6CE38]"></i>
+            <span>Enclose in Frame</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Artistic Vignette / Tip Box -->
+      <div class="mosaic-frame-sm bg-[#FFF8E7] rounded-xl p-4 flex items-start space-x-3.5 relative overflow-hidden">
+        <div class="w-2.5 self-stretch bg-[#D7262E] rounded-full shrink-0"></div>
+        <div>
+          <h4 class="font-display-art font-black text-xs text-[#181A1F] uppercase tracking-wider flex items-center gap-1.5">
+            <span>Harmonic Proportion Advice</span>
+            <span class="text-amber-600">✦</span>
+          </h4>
+          <p class="text-xs text-[#5D523B] font-serif-art mt-1 leading-relaxed">
+            For seamless integration into modern platforms (Webflow, Notion, Squarespace), set responsive ratios such as <code class="bg-[#F1E4C3] px-1 py-0.5 rounded font-mono-art text-[10px] text-[#181A1F] font-bold">padding-bottom: 56.25%</code> for cinematic 16:9 media.
+          </p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Right Column: Interactive Live Preview & Device Switcher (7 Cols) -->
+    <section class="lg:col-span-7 flex flex-col space-y-5">
+
+      <div class="mosaic-frame bg-[#FAF5E9] rounded-2xl flex flex-col h-[670px] overflow-hidden">
+        
+        <!-- Preview Toolbar -->
+        <div class="px-4 py-2.5 bg-[#EFE6CE] border-b-3 border-[#181A1F] flex flex-wrap items-center justify-between gap-2">
+          
+          <!-- Device Mode Selector styled as Bauhaus/Avant-Garde toggle -->
+          <div class="flex items-center space-x-1 bg-[#FAF5E9] p-1 rounded-xl border-2 border-[#181A1F] shadow-[2px_2px_0px_#181A1F]">
+            <button id="device-desktop" class="device-btn active px-3 py-1 rounded-lg text-xs font-bold font-mono-art bg-[#181A1F] text-[#FAF5E9] flex items-center space-x-1.5 transition">
+              <i data-lucide="monitor" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">FULL</span>
+            </button>
+            <button id="device-tablet" class="device-btn px-3 py-1 rounded-lg text-xs font-bold font-mono-art text-[#181A1F] hover:bg-[#EFE6CE] flex items-center space-x-1.5 transition">
+              <i data-lucide="tablet" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">768px</span>
+            </button>
+            <button id="device-mobile" class="device-btn px-3 py-1 rounded-lg text-xs font-bold font-mono-art text-[#181A1F] hover:bg-[#EFE6CE] flex items-center space-x-1.5 transition">
+              <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">375px</span>
+            </button>
+          </div>
+
+          <!-- Sandbox and Control Toggles -->
+          <div class="flex items-center space-x-2">
+            <button id="refresh-preview-btn" title="Refresh Live Display" class="p-2 text-[#181A1F] hover:bg-[#FAF5E9] rounded-lg border-2 border-[#181A1F] shadow-[2px_2px_0px_#181A1F] active:translate-x-0.5 active:translate-y-0.5 transition">
+              <i data-lucide="rotate-cw" class="w-4 h-4 text-[#1B4E9B]"></i>
+            </button>
+            <button id="popout-preview-btn" title="Open Isolated Gallery" class="p-2 text-[#181A1F] hover:bg-[#FAF5E9] rounded-lg border-2 border-[#181A1F] shadow-[2px_2px_0px_#181A1F] active:translate-x-0.5 active:translate-y-0.5 transition">
+              <i data-lucide="external-link" class="w-4 h-4 text-[#D7262E]"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Preview Stage Background -->
+        <div id="preview-stage" class="flex-1 bg-[#EBE1C7] p-3 sm:p-6 flex items-center justify-center overflow-auto relative">
+          
+          <!-- Background decorative motif marks -->
+          <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: repeating-conic-gradient(#181A1F 0% 25%, transparent 0% 50%); background-size: 40px 40px;"></div>
+
+          <!-- Embedded Iframe wrapper simulating canvas/device -->
+          <div id="preview-container" class="w-full h-full bg-[#FAF5E9] rounded-xl border-3 border-[#181A1F] shadow-[5px_5px_0px_#181A1F] transition-all duration-300 relative flex flex-col overflow-hidden z-10">
+            
+            <!-- Simulated Browser Bar (Mobile/Tablet hint) -->
+            <div id="simulated-bar" class="hidden px-3 py-1.5 bg-[#EFE6CE] border-b-2 border-[#181A1F] items-center justify-between text-[11px] text-[#6B5E43] font-mono-art">
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#D7262E] border border-[#181A1F]"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-[#F6CE38] border border-[#181A1F]"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-[#146B42] border border-[#181A1F]"></span>
+              </div>
+              <span id="preview-viewport-label" class="font-bold tracking-wider text-[#181A1F]">Tablet (768px)</span>
+              <div class="w-6"></div>
+            </div>
+
+            <!-- The Render Sandbox Frame -->
+            <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation" class="w-full h-full border-0 bg-[#FAF5E9]"></iframe>
+          </div>
+
+        </div>
+
+        <!-- Preview Status Bar -->
+        <div class="px-4 py-2.5 bg-[#FAF5E9] border-t-3 border-[#181A1F] flex items-center justify-between text-xs text-[#6B5E43] font-mono-art">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#146B42] animate-pulse"></span>
+            <span class="text-[#181A1F] font-bold">Synchronized Live Canvas</span>
+          </div>
+          <span class="text-[#847558] text-[11px]">Sandboxed Cross-Origin Guard</span>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL: Templates & Generators -->
+  <div id="template-modal" class="fixed inset-0 z-50 bg-[#181A1F]/70 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="mosaic-frame bg-[#FAF5E9] rounded-2xl max-w-2xl w-full overflow-hidden transform transition-all">
+      <div class="px-6 py-4 bg-[#EFE6CE] border-b-3 border-[#181A1F] flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="p-2 rounded-xl bg-[#F6CE38] border-2 border-[#181A1F] text-[#181A1F]">
+            <i data-lucide="palette" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-display-art font-black text-[#181A1F] text-base tracking-wide">AVANT-GARDE EMBED MOTIFS</h3>
+            <p class="text-xs text-[#6B5E43] font-serif-art italic">Select a curated structure to calibrate your embed tapestry</p>
+          </div>
+        </div>
+        <button class="modal-close-btn p-1.5 text-[#181A1F] hover:bg-[#FAF5E9] rounded-lg border-2 border-[#181A1F]">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-h-[60vh] overflow-y-auto bg-[#F8F2E2]">
+        
+        <!-- Art Deco Showpiece -->
+        <button data-template="artCard" class="template-card text-left p-4 rounded-xl border-2 border-[#181A1F] bg-[#FAF5E9] hover:bg-[#FFFDE8] shadow-[3px_3px_0px_#181A1F] active:translate-x-0.5 active:translate-y-0.5 transition flex items-start space-x-3 group">
+          <div class="p-2.5 rounded-lg bg-[#D7262E] text-white border-2 border-[#181A1F] group-hover:scale-105 transition">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-black font-display-art text-[#181A1F]">Ballets Russes Card</h4>
+            <p class="text-xs text-[#6B5E43] font-serif-art mt-0.5">Vibrant polychromatic banner with stylized buttons & geometry.</p>
+          </div>
+        </button>
+
+        <!-- YouTube -->
+        <button data-template="youtube" class="template-card text-left p-4 rounded-xl border-2 border-[#181A1F] bg-[#FAF5E9] hover:bg-[#FFFDE8] shadow-[3px_3px_0px_#181A1F] active:translate-x-0.5 active:translate-y-0.5 transition flex items-start space-x-3 group">
+          <div class="p-2.5 rounded-lg bg-[#F6CE38] text-[#181A1F] border-2 border-[#181A1F] group-hover:scale-105 transition">
+            <i data-lucide="youtube" class="w-5 h-5 text-[#D7262E]"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-black font-display-art text-[#181A1F]">YouTube Frame</h4>
+            <p class="text-xs text-[#6B5E43] font-serif-art mt-0.5">Responsive 16:9 player framed in decorative high-contrast trim.</p>
+          </div>
+        </button>
+
+        <!-- Vimeo -->
+        <button data-template="vimeo" class="template-card text-left p-4 rounded-xl border-2 border-[#181A1F] bg-[#FAF5E9] hover:bg-[#FFFDE8] shadow-[3px_3px_0px_#181A1F] active:translate-x-0.5 active:translate-y-0.5 transition flex items-start space-x-3 group">
+          <div class="p-2.5 rounded-lg bg-[#1B4E9B] text-white border-2 border-[#181A1F] group-hover:scale-105 transition">
+            <i data-lucide="video" class="w-5 h-5 text-[#F6CE38]"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-black font-display-art text-[#181A1F]">Vimeo Projection</h4>
+            <p class="text-xs text-[#6B5E43] font-serif-art mt-0.5">Artful cinema player with proportion-locked container.</p>
+          </div>
+        </button>
+
+        <!-- Spotify -->
+        <button data-template="spotify" class="template-card text-left p-4 rounded-xl border-2 border-[#181A1F] bg-[#FAF5E9] hover:bg-[#FFFDE8] shadow-[3px_3px_0px_#181A1F] active:translate-x-0.5 active:translate-y-0.5 transition flex items-start space-x-3 group">
+          <div class="p-2.5 rounded-lg bg-[#146B42] text-white border-2 border-[#181A1F] group-hover:scale-105 transition">
+            <i data-lucide="music" class="w-5 h-5 text-[#FAF5E9]"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-black font-display-art text-[#181A1F]">Spotify Symphonia</h4>
+            <p class="text-xs text-[#6B5E43] font-serif-art mt-0.5">Musical player widget suitable for albums, tracks or suites.</p>
+          </div>
+        </button>
+
+        <!-- Google Maps -->
+        <button data-template="map" class="template-card text-left p-4 rounded-xl border-2 border-[#181A1F] bg-[#FAF5E9] hover:bg-[#FFFDE8] shadow-[3px_3px_0px_#181A1F] active:translate-x-0.5 active:translate-y-0.5 transition flex items-start space-x-3 group">
+          <div class="p-2.5 rounded-lg bg-[#9E2B6C] text-white border-2 border-[#181A1F] group-hover:scale-105 transition">
+            <i data-lucide="map-pin" class="w-5 h-5 text-[#F6CE38]"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-black font-display-art text-[#181A1F]">Cartographic Pinpoint</h4>
+            <p class="text-xs text-[#6B5E43] font-serif-art mt-0.5">Google Maps location canvas embedded inside a neat border.</p>
+          </div>
+        </button>
+
+        <!-- Live Clock / Dynamic Widget -->
+        <button data-template="widget" class="template-card text-left p-4 rounded-xl border-2 border-[#181A1F] bg-[#FAF5E9] hover:bg-[#FFFDE8] shadow-[3px_3px_0px_#181A1F] active:translate-x-0.5 active:translate-y-0.5 transition flex items-start space-x-3 group">
+          <div class="p-2.5 rounded-lg bg-[#FAF5E9] text-[#181A1F] border-2 border-[#181A1F] group-hover:scale-105 transition">
+            <i data-lucide="clock" class="w-5 h-5 text-[#1B4E9B]"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-black font-display-art text-[#181A1F]">Kinetic Chronometer</h4>
+            <p class="text-xs text-[#6B5E43] font-serif-art mt-0.5">Live timekeeper and interaction tally rendered in HTML/JS.</p>
+          </div>
+        </button>
+
+      </div>
+
+      <div class="px-6 py-3.5 bg-[#EFE6CE] border-t-3 border-[#181A1F] flex justify-end">
+        <button class="modal-close-btn px-4 py-2 rounded-lg border-2 border-[#181A1F] bg-[#FAF5E9] hover:bg-white text-[#181A1F] text-xs font-bold font-mono-art shadow-[2px_2px_0px_#181A1F] transition">
+          DISMISS
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Share & Export Hub -->
+  <div id="share-modal" class="fixed inset-0 z-50 bg-[#181A1F]/70 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="mosaic-frame bg-[#FAF5E9] rounded-2xl max-w-xl w-full overflow-hidden transform transition-all">
+      <div class="px-6 py-4 bg-[#EFE6CE] border-b-3 border-[#181A1F] flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="p-2 rounded-xl bg-[#D7262E] text-white border-2 border-[#181A1F]">
+            <i data-lucide="send" class="w-5 h-5 text-[#F6CE38]"></i>
+          </div>
+          <div>
+            <h3 class="font-display-art font-black text-[#181A1F] text-base tracking-wide">SHARE &amp; DISPATCH EMBED</h3>
+            <p class="text-xs text-[#6B5E43] font-serif-art italic">Broadcast your snippet through permanent links or standalone parchment</p>
+          </div>
+        </div>
+        <button class="modal-close-btn p-1.5 text-[#181A1F] hover:bg-[#FAF5E9] rounded-lg border-2 border-[#181A1F]">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 bg-[#FAF5E9]">
+        
+        <!-- Share Link -->
+        <div>
+          <label class="block text-xs font-mono-art font-bold text-[#181A1F] mb-1.5 flex items-center justify-between">
+            <span>PERMANENT URI (DATA HASH ENCODED)</span>
+            <span class="text-[10px] text-[#1B4E9B] uppercase font-bold">Zero-dependency link</span>
+          </label>
+          <div class="flex items-center space-x-2">
+            <input type="text" id="share-link-input" readonly class="w-full text-xs font-mono-art px-3 py-2.5 rounded-lg bg-white border-2 border-[#181A1F] text-[#181A1F] focus:outline-none">
+            <button id="copy-share-link-btn" class="px-4 py-2.5 bg-[#D7262E] hover:bg-[#be1c23] text-white rounded-lg text-xs font-bold font-mono-art border-2 border-[#181A1F] shadow-[2px_2px_0px_#181A1F] shrink-0 transition active:translate-x-0.5 active:translate-y-0.5">
+              COPY
+            </button>
+          </div>
+        </div>
+
+        <!-- Clean Iframe Snippet for blogs/web builders -->
+        <div>
+          <label class="block text-xs font-mono-art font-bold text-[#181A1F] mb-1.5">IFRAME ENCLOSURE FOR WEBFLOW, NOTION &amp; CMS</label>
+          <div class="relative">
+            <textarea id="share-iframe-snippet" rows="3" readonly class="w-full text-xs font-mono-art p-3 rounded-lg bg-white border-2 border-[#181A1F] text-[#181A1F] focus:outline-none resize-none"></textarea>
+            <button id="copy-iframe-snippet-btn" class="absolute top-2.5 right-2.5 px-3 py-1 bg-[#F6CE38] border-2 border-[#181A1F] hover:bg-[#ebd25b] text-[#181A1F] rounded-md text-[10px] font-bold font-mono-art shadow-[1px_1px_0px_#181A1F] transition">
+              COPY EMBED
+            </button>
+          </div>
+        </div>
+
+        <!-- Download Buttons -->
+        <div class="pt-2 flex flex-col sm:flex-row gap-3">
+          <button id="download-html-file-btn" class="flex-1 py-3 px-4 rounded-xl bg-[#FAF5E9] hover:bg-white text-[#181A1F] border-2 border-[#181A1F] shadow-[3px_3px_0px_#181A1F] text-xs font-bold font-mono-art flex items-center justify-center space-x-2 transition active:translate-x-0.5 active:translate-y-0.5">
+            <i data-lucide="download" class="w-4 h-4 text-[#D7262E]"></i>
+            <span>Export Standalone .HTML</span>
+          </button>
+          <button id="open-isolated-btn" class="flex-1 py-3 px-4 rounded-xl bg-[#1B4E9B] hover:bg-[#143d7c] text-white border-2 border-[#181A1F] shadow-[3px_3px_0px_#181A1F] text-xs font-bold font-mono-art flex items-center justify-center space-x-2 transition active:translate-x-0.5 active:translate-y-0.5">
+            <i data-lucide="external-link" class="w-4 h-4 text-[#F6CE38]"></i>
+            <span>Pop-out Gallery View</span>
+          </button>
+        </div>
+
+      </div>
+
+      <div class="px-6 py-3.5 bg-[#EFE6CE] border-t-3 border-[#181A1F] flex justify-end">
+        <button class="modal-close-btn px-4 py-2 rounded-lg border-2 border-[#181A1F] bg-[#FAF5E9] hover:bg-white text-[#181A1F] text-xs font-bold font-mono-art shadow-[2px_2px_0px_#181A1F] transition">
+          CONCLUDE
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL / DRAWER: Saved Library -->
+  <div id="library-modal" class="fixed inset-0 z-50 bg-[#181A1F]/70 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="mosaic-frame bg-[#FAF5E9] rounded-2xl max-w-2xl w-full flex flex-col max-h-[80vh] overflow-hidden">
+      <div class="px-6 py-4 bg-[#EFE6CE] border-b-3 border-[#181A1F] flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="p-2 rounded-xl bg-[#9E2B6C] text-white border-2 border-[#181A1F]">
+            <i data-lucide="folder-git-2" class="w-5 h-5 text-[#F6CE38]"></i>
+          </div>
+          <div>
+            <h3 class="font-display-art font-black text-[#181A1F] text-base tracking-wide">STUDIO ARCHIVE &amp; FOLIO</h3>
+            <p class="text-xs text-[#6B5E43] font-serif-art italic">Locally archived embed pieces retained inside this browser</p>
+          </div>
+        </div>
+        <button class="modal-close-btn p-1.5 text-[#181A1F] hover:bg-[#FAF5E9] rounded-lg border-2 border-[#181A1F]">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Search & Filters -->
+      <div class="p-4 border-b-2 border-[#181A1F] bg-[#F4EBD4]">
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 text-[#6B5E43] absolute left-3 top-3"></i>
+          <input type="text" id="library-search-input" placeholder="Search archive by motif or keyword..." class="w-full text-xs font-mono-art pl-9 pr-4 py-2.5 rounded-lg border-2 border-[#181A1F] bg-white text-[#181A1F] focus:outline-none">
+        </div>
+      </div>
+
+      <!-- Snippet List -->
+      <div id="library-list" class="p-4 space-y-3 overflow-y-auto flex-1 bg-[#FAF5E9]">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Library Footer -->
+      <div class="px-6 py-3.5 bg-[#EFE6CE] border-t-3 border-[#181A1F] flex items-center justify-between">
+        <button id="clear-library-btn" class="text-xs font-bold font-mono-art text-[#D7262E] hover:underline">PURGE ARCHIVE</button>
+        <button class="modal-close-btn px-4 py-2 rounded-lg border-2 border-[#181A1F] bg-[#FAF5E9] hover:bg-white text-[#181A1F] text-xs font-bold font-mono-art shadow-[2px_2px_0px_#181A1F] transition">
+          DISMISS
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Decorative Footer with Folkloric Art Deco Ribbon -->
+  <footer class="bg-[#FAF5E9] border-t-4 border-[#181A1F] py-5 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#6B5E43] font-mono-art gap-3">
+      <div class="flex items-center space-x-2">
+        <span class="font-display-art font-black text-sm text-[#181A1F]">EMBEDFLOW</span>
+        <span>✦</span>
+        <span class="italic font-serif-art text-sm">Harmonic Web Embed Studio</span>
+      </div>
+      <div class="flex items-center space-x-2 text-[11px]">
+        <span class="w-2.5 h-2.5 rounded-full bg-[#D7262E]"></span>
+        <span class="w-2.5 h-2.5 bg-[#F6CE38] rotate-45"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#1B4E9B]"></span>
+        <span>Orphic Color Expression &bull; Seamless Embedding Everywhere</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Logic -->
+  <script>
+    // Templates definitions with polychromatic artwork-inspired demo cards
+    const TEMPLATES = {
+      artCard: `<!-- Avant-Garde Tapestry Showcase Card -->
+<div style="max-width: 520px; margin: 20px auto; font-family: 'Playfair Display', Georgia, serif; background: #FAF5E9; border: 4px solid #181A1F; border-radius: 20px; box-shadow: 8px 8px 0px #181A1F; overflow: hidden; position: relative;">
+  <!-- Colorful geometric header banner -->
+  <div style="height: 140px; background: linear-gradient(135deg, #1B4E9B 0%, #3EA6D6 40%, #F6CE38 40%, #F6CE38 60%, #D7262E 60%, #9E2B6C 100%); position: relative; border-bottom: 3px solid #181A1F; display: flex; align-items: flex-end; padding: 16px;">
+    <div style="position: absolute; top: 12px; right: 16px; width: 44px; height: 44px; border-radius: 50%; background: #FAF5E9; border: 3px solid #181A1F; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+      🦢
+    </div>
+    <span style="font-family: monospace; font-size: 10px; font-weight: 800; letter-spacing: 0.15em; background: #181A1F; color: #FAF5E9; padding: 4px 10px; border-radius: 6px; text-transform: uppercase;">
+      Ballets Russes &bull; Op. 1920
+    </span>
+  </div>
+
+  <!-- Content panel -->
+  <div style="padding: 24px; color: #181A1F;">
+    <h3 style="margin: 0 0 10px 0; font-size: 24px; font-weight: 800; letter-spacing: -0.01em; color: #181A1F;">
+      Polychromatic Symphonie
+    </h3>
+    <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #5D523B;">
+      A celebration of geometric rhythm, flowing gowns, and decorative folk motifs. Embed seamlessly into blogs, editorial platforms, or custom web portals.
+    </p>
+
+    <!-- Mosaic pill metrics -->
+    <div style="display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap;">
+      <span style="background: #EFE6CE; border: 2px solid #181A1F; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; font-family: monospace;">
+        COLOR: ORPHISM
+      </span>
+      <span style="background: #FCEFD5; border: 2px solid #181A1F; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; font-family: monospace; color: #D7262E;">
+        CHORD: CINNABAR
+      </span>
+    </div>
+
+    <button onclick="this.innerText='Tapestry Activated! ✦'; this.style.backgroundColor='#146B42'; this.style.color='#FAF5E9';" style="background: #D7262E; color: #FAF5E9; border: 2px solid #181A1F; padding: 12px 24px; border-radius: 12px; font-size: 13px; font-weight: 800; font-family: monospace; cursor: pointer; box-shadow: 3px 3px 0px #181A1F; transition: all 0.2s;">
+      INTERACT WITH CANVAS
+    </button>
+  </div>
+</div>`,
+
+      youtube: `<!-- YouTube Responsive Avant-Garde Embed -->
+<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; border: 4px solid #181A1F; border-radius: 16px; box-shadow: 6px 6px 0px #181A1F; background: #FAF5E9;">
+  <iframe 
+    src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" 
+    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" 
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+    allowfullscreen>
+  </iframe>
+</div>`,
+
+      vimeo: `<!-- Vimeo Responsive Embed -->
+<div style="position: relative; padding-top: 56.25%; border-radius: 16px; overflow: hidden; border: 4px solid #181A1F; box-shadow: 6px 6px 0px #181A1F; background: #FAF5E9;">
+  <iframe 
+    src="https://player.vimeo.com/video/76979871?h=8272103f6e&title=0&byline=0&portrait=0" 
+    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" 
+    allow="autoplay; fullscreen; picture-in-picture" 
+    allowfullscreen>
+  </iframe>
+</div>`,
+
+      spotify: `<!-- Spotify Music Player Widget -->
+<div style="border: 4px solid #181A1F; border-radius: 16px; overflow: hidden; box-shadow: 6px 6px 0px #181A1F; background: #FAF5E9;">
+  <iframe 
+    style="border: 0; width: 100%; height: 352px; display: block;" 
+    src="https://open.spotify.com/embed/track/4cOdK2wGLETKBW3PvgPWqT?utm_source=generator" 
+    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+    loading="lazy">
+  </iframe>
+</div>`,
+
+      map: `<!-- Google Maps Responsive Embed -->
+<div style="width: 100%; border-radius: 16px; overflow: hidden; border: 4px solid #181A1F; box-shadow: 6px 6px 0px #181A1F; background: #FAF5E9;">
+  <iframe 
+    width="100%" 
+    height="380" 
+    style="border: 0; display: block;" 
+    loading="lazy" 
+    allowfullscreen 
+    referrerpolicy="no-referrer-when-downgrade" 
+    src="https://maps.google.com/maps?q=Louvre+Museum+Paris&t=&z=14&ie=UTF8&iwloc=&output=embed">
+  </iframe>
+</div>`,
+
+      widget: `<!-- Kinetic Chronometer Widget -->
+<div style="text-align: center; padding: 28px; font-family: 'Cinzel', Georgia, serif; background: #FAF5E9; border-radius: 20px; border: 4px solid #181A1F; box-shadow: 7px 7px 0px #181A1F; max-width: 380px; margin: 20px auto;">
+  <div style="display: inline-block; font-family: monospace; font-size: 11px; font-weight: 800; background: #F6CE38; color: #181A1F; border: 2px solid #181A1F; padding: 3px 10px; border-radius: 6px; text-transform: uppercase;">
+    Atelier Clock
+  </div>
+  <h2 id="live-clock" style="font-size: 34px; font-weight: 900; color: #181A1F; margin: 16px 0 8px 0; font-family: monospace; letter-spacing: 0.05em;">00:00:00</h2>
+  <p style="font-size: 13px; color: #6B5E43; margin: 0 0 18px 0; font-style: italic;">Rhythmic avant-garde pulsation</p>
+  <button id="tap-btn" style="background: #1B4E9B; color: #FAF5E9; border: 2px solid #181A1F; padding: 10px 20px; border-radius: 10px; font-size: 12px; font-weight: 700; font-family: monospace; cursor: pointer; box-shadow: 3px 3px 0px #181A1F;">
+    TAPS INSCRIBED: <span id="tap-count">0</span>
+  </button>
+
+  <script>
+    function updateClock() {
+      const el = document.getElementById('live-clock');
+      if (el) el.innerText = new Date().toLocaleTimeString();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    let count = 0;
+    const btn = document.getElementById('tap-btn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        count++;
+        document.getElementById('tap-count').innerText = count;
+      });
+    }
+  <\/script>
+</div>`
+    };
+
+    // State
+    const state = {
+      code: '',
+      title: 'Avant-Garde Showcase',
+      tags: 'fauvism, showcase',
+      savedSnippets: [],
+      deviceMode: 'desktop'
+    };
+
+    // DOM Elements
+    const codeInput = document.getElementById('code-input');
+    const snippetTitleInput = document.getElementById('snippet-title');
+    const snippetTagsInput = document.getElementById('snippet-tags');
+    const previewFrame = document.getElementById('preview-frame');
+    const previewContainer = document.getElementById('preview-container');
+    const simulatedBar = document.getElementById('simulated-bar');
+    const charCounter = document.getElementById('char-counter');
+    const savedCountBadge = document.getElementById('saved-count-badge');
+    const toastContainer = document.getElementById('toast-container');
+
+    // Modals
+    const templateModal = document.getElementById('template-modal');
+    const shareModal = document.getElementById('share-modal');
+    const libraryModal = document.getElementById('library-modal');
+
+    // Share Modal Elements
+    const shareLinkInput = document.getElementById('share-link-input');
+    const shareIframeSnippet = document.getElementById('share-iframe-snippet');
+
+    // Initialize application
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadLibraryFromStorage();
+
+      // Check URL hash for shared code payload
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#data=')) {
+        try {
+          const raw = hash.replace('#data=', '');
+          const decoded = decodeURIComponent(escape(atob(raw)));
+          const parsed = JSON.parse(decoded);
+          state.code = parsed.code || '';
+          state.title = parsed.title || 'Shared Motif';
+          state.tags = parsed.tags || 'shared';
+          snippetTitleInput.value = state.title;
+          snippetTagsInput.value = state.tags;
+          showToast('Decoded shared motif from URL!', 'success');
+        } catch (e) {
+          console.warn('Could not parse hash payload:', e);
+          state.code = TEMPLATES.artCard;
+        }
+      } else {
+        state.code = TEMPLATES.artCard;
+      }
+
+      codeInput.value = state.code;
+      updateEditorAndPreview();
+      setupEventListeners();
+    });
+
+    // Update Preview Iframe
+    function updateEditorAndPreview() {
+      state.code = codeInput.value;
+      state.title = snippetTitleInput.value.trim() || 'Untitled Motif';
+      state.tags = snippetTagsInput.value.trim();
+
+      charCounter.innerText = `${state.code.length.toLocaleString()} characters`;
+
+      const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+      doc.open();
+      doc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body {
+              margin: 0;
+              padding: 20px;
+              box-sizing: border-box;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Georgia, serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              min-height: calc(100vh - 40px);
+              background-color: transparent;
+            }
+            * { box-sizing: border-box; }
+          </style>
+        </head>
+        <body>
+          <div style="width: 100%; max-width: 100%;">
+            ${state.code}
+          </div>
+        </body>
+        </html>
+      `);
+      doc.close();
+    }
+
+    // Set Device Preview Size
+    function setDeviceMode(mode) {
+      state.deviceMode = mode;
+      document.querySelectorAll('.device-btn').forEach(btn => {
+        btn.classList.remove('bg-[#181A1F]', 'text-[#FAF5E9]');
+        btn.classList.add('text-[#181A1F]');
+      });
+
+      const activeBtn = document.getElementById(`device-${mode}`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-[#181A1F]', 'text-[#FAF5E9]');
+        activeBtn.classList.remove('text-[#181A1F]');
+      }
+
+      if (mode === 'desktop') {
+        previewContainer.style.maxWidth = '100%';
+        previewContainer.style.height = '100%';
+        simulatedBar.classList.add('hidden');
+        simulatedBar.classList.remove('flex');
+      } else if (mode === 'tablet') {
+        previewContainer.style.maxWidth = '768px';
+        previewContainer.style.height = '95%';
+        simulatedBar.classList.remove('hidden');
+        simulatedBar.classList.add('flex');
+        document.getElementById('preview-viewport-label').innerText = 'Tablet (768px)';
+      } else if (mode === 'mobile') {
+        previewContainer.style.maxWidth = '375px';
+        previewContainer.style.height = '95%';
+        simulatedBar.classList.remove('hidden');
+        simulatedBar.classList.add('flex');
+        document.getElementById('preview-viewport-label').innerText = 'Mobile (375px)';
+      }
+    }
+
+    // Wrap snippet into an artistic framed container
+    function wrapCodeInResponsiveContainer() {
+      const current = codeInput.value.trim();
+      if (!current) return;
+
+      const wrapped = `<!-- Avant-Garde Structured Enclosure -->
+<div style="width: 100%; max-width: 820px; margin: 0 auto; padding: 16px; box-sizing: border-box;">
+  <div style="position: relative; width: 100%; overflow: hidden; border: 4px solid #181A1F; border-radius: 16px; box-shadow: 6px 6px 0px #181A1F; background: #FAF5E9;">
+    ${current}
+  </div>
+</div>`;
+      codeInput.value = wrapped;
+      updateEditorAndPreview();
+      showToast('Enclosed inside Avant-Garde frame!', 'success');
+    }
+
+    // Copy to clipboard helper
+    function copyTextToClipboard(text, successMsg = 'Copied to clipboard!') {
+      try {
+        const tempTextarea = document.createElement('textarea');
+        tempTextarea.value = text;
+        tempTextarea.style.position = 'fixed';
+        tempTextarea.style.opacity = '0';
+        document.body.appendChild(tempTextarea);
+        tempTextarea.focus();
+        tempTextarea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(tempTextarea);
+        if (successful) {
+          showToast(successMsg, 'success');
+        } else {
+          showToast('Could not copy automatically.', 'error');
+        }
+      } catch (err) {
+        showToast('Error copying to clipboard', 'error');
+      }
+    }
+
+    // Toast UI
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      const icon = type === 'success' ? 'sparkles' : type === 'error' ? 'alert-triangle' : 'info';
+      const bg = type === 'success' ? 'bg-[#181A1F] text-[#FAF5E9]' : type === 'error' ? 'bg-[#D7262E] text-white' : 'bg-[#1B4E9B] text-white';
+
+      toast.className = `${bg} px-4 py-3 rounded-xl border-2 border-[#181A1F] shadow-[4px_4px_0px_#181A1F] text-xs font-bold font-mono-art flex items-center space-x-2.5 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto`;
+      toast.innerHTML = `
+        <i data-lucide="${icon}" class="w-4 h-4 text-[#F6CE38]"></i>
+        <span>${message}</span>
+      `;
+
+      toastContainer.appendChild(toast);
+      lucide.createIcons({ root: toast });
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+
+    // Library Storage
+    function loadLibraryFromStorage() {
+      try {
+        const raw = localStorage.getItem('embedflow_avantgarde_lib');
+        state.savedSnippets = raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        state.savedSnippets = [];
+      }
+      updateSavedCount();
+    }
+
+    function saveLibraryToStorage() {
+      try {
+        localStorage.setItem('embedflow_avantgarde_lib', JSON.stringify(state.savedSnippets));
+      } catch (e) {
+        console.error('Storage full or unavailable', e);
+      }
+      updateSavedCount();
+    }
+
+    function updateSavedCount() {
+      savedCountBadge.innerText = state.savedSnippets.length;
+    }
+
+    function saveCurrentSnippet() {
+      const code = codeInput.value.trim();
+      if (!code) {
+        showToast('Cannot archive empty motif!', 'error');
+        return;
+      }
+      const title = snippetTitleInput.value.trim() || 'Untitled Motif';
+      const tags = snippetTagsInput.value.trim() || 'motif';
+
+      const newSnippet = {
+        id: 'motif_' + Date.now(),
+        title,
+        tags,
+        code,
+        createdAt: new Date().toLocaleDateString()
+      };
+
+      state.savedSnippets.unshift(newSnippet);
+      saveLibraryToStorage();
+      showToast(`Archived "${title}" to your Folio!`, 'success');
+    }
+
+    function renderLibrary(filterText = '') {
+      const container = document.getElementById('library-list');
+      container.innerHTML = '';
+
+      const query = filterText.toLowerCase();
+      const filtered = state.savedSnippets.filter(item => 
+        item.title.toLowerCase().includes(query) || 
+        item.tags.toLowerCase().includes(query)
+      );
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-[#6B5E43]">
+            <i data-lucide="layers" class="w-10 h-10 mx-auto mb-2 text-[#9E2B6C]"></i>
+            <p class="text-xs font-bold font-display-art">NO ARCHIVED MOTIFS</p>
+            <p class="text-[11px] font-serif-art italic mt-0.5">Commit embeds from the atelier to retain them here.</p>
+          </div>
+        `;
+        lucide.createIcons({ root: container });
+        return;
+      }
+
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'p-3.5 rounded-xl border-2 border-[#181A1F] bg-[#FAF5E9] hover:bg-white shadow-[3px_3px_0px_#181A1F] transition flex flex-col sm:flex-row sm:items-center justify-between gap-3';
+        card.innerHTML = `
+          <div class="overflow-hidden">
+            <h4 class="text-xs font-black font-display-art text-[#181A1F] truncate">${escapeHtml(item.title)}</h4>
+            <div class="flex items-center space-x-2 mt-1">
+              <span class="text-[10px] font-mono-art text-[#6B5E43]">${item.createdAt}</span>
+              <span class="text-[10px] font-mono-art bg-[#EFE6CE] border border-[#181A1F] text-[#181A1F] px-2 py-0.5 rounded-md font-bold truncate max-w-[200px]">${escapeHtml(item.tags)}</span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 shrink-0 self-end sm:self-auto">
+            <button data-load-id="${item.id}" class="load-btn px-3 py-1.5 rounded-lg bg-[#F6CE38] hover:bg-[#ebd25b] border-2 border-[#181A1F] text-[#181A1F] text-xs font-bold font-mono-art flex items-center space-x-1 shadow-[1px_1px_0px_#181A1F]">
+              <i data-lucide="play" class="w-3.5 h-3.5 text-[#D7262E]"></i>
+              <span>LOAD</span>
+            </button>
+            <button data-delete-id="${item.id}" class="delete-btn p-1.5 rounded-lg text-[#181A1F] hover:text-[#D7262E] hover:bg-[#FBEBEB] border-2 border-transparent hover:border-[#181A1F] transition">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      lucide.createIcons({ root: container });
+
+      container.querySelectorAll('.load-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-load-id');
+          const target = state.savedSnippets.find(s => s.id === id);
+          if (target) {
+            codeInput.value = target.code;
+            snippetTitleInput.value = target.title;
+            snippetTagsInput.value = target.tags;
+            updateEditorAndPreview();
+            closeAllModals();
+            showToast(`Loaded "${target.title}"`, 'success');
+          }
+        });
+      });
+
+      container.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-delete-id');
+          state.savedSnippets = state.savedSnippets.filter(s => s.id !== id);
+          saveLibraryToStorage();
+          renderLibrary(document.getElementById('library-search-input').value);
+          showToast('Motif excised from folio', 'info');
+        });
+      });
+    }
+
+    function escapeHtml(string) {
+      return String(string)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Generate Share link & Snippets
+    function prepareShareHub() {
+      const code = codeInput.value;
+      const title = snippetTitleInput.value.trim() || 'Embed';
+      const tags = snippetTagsInput.value.trim();
+
+      try {
+        const payload = JSON.stringify({ title, tags, code });
+        const encoded = btoa(unescape(encodeURIComponent(payload)));
+        const shareUrl = `${window.location.origin}${window.location.pathname}#data=${encoded}`;
+        shareLinkInput.value = shareUrl;
+      } catch (err) {
+        shareLinkInput.value = window.location.href;
+      }
+
+      const encodedCodeUri = 'data:text/html;charset=utf-8,' + encodeURIComponent(code);
+      const iframeMarkup = `<iframe src="${encodedCodeUri}" style="width:100%; border:3px solid #181A1F; min-height:420px; border-radius:16px; box-shadow:5px 5px 0px #181A1F;" loading="lazy"></iframe>`;
+      shareIframeSnippet.value = iframeMarkup;
+
+      shareModal.classList.remove('hidden');
+    }
+
+    function downloadAsHtmlFile() {
+      const code = codeInput.value;
+      const title = snippetTitleInput.value.trim() || 'embedded-motif';
+      const filename = `${title.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'motif'}.html`;
+
+      const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(title)}</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 32px 16px;
+      font-family: 'Playfair Display', Georgia, serif;
+      background-color: #F7F1E1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .embed-card {
+      width: 100%;
+      max-width: 900px;
+    }
+  </style>
+</head>
+<body>
+  <div class="embed-card">
+    ${code}
+  </div>
+</body>
+</html>`;
+
+      const blob = new Blob([fullHtml], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Parchment exported: ${filename}`, 'success');
+    }
+
+    function openCleanPreviewTab() {
+      const code = codeInput.value;
+      const title = snippetTitleInput.value.trim() || 'Isolated Gallery';
+      const newWin = window.open('', '_blank');
+      if (newWin) {
+        newWin.document.open();
+        newWin.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${escapeHtml(title)} — Gallery</title>
+            <style>
+              body {
+                margin: 0;
+                padding: 40px 20px;
+                font-family: Georgia, serif;
+                background-color: #F7F1E1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                box-sizing: border-box;
+              }
+              .wrapper { width: 100%; max-width: 960px; }
+            </style>
+          </head>
+          <body>
+            <div class="wrapper">${code}</div>
+          </body>
+          </html>
+        `);
+        newWin.document.close();
+      } else {
+        showToast('Pop-up was blocked. Please allow pop-ups for gallery view.', 'error');
+      }
+    }
+
+    function closeAllModals() {
+      templateModal.classList.add('hidden');
+      shareModal.classList.add('hidden');
+      libraryModal.classList.add('hidden');
+    }
+
+    // Attach Event Listeners
+    function setupEventListeners() {
+      let debounceTimeout;
+      codeInput.addEventListener('input', () => {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(updateEditorAndPreview, 250);
+      });
+
+      snippetTitleInput.addEventListener('input', () => {
+        state.title = snippetTitleInput.value;
+      });
+
+      document.getElementById('clear-code-btn').addEventListener('click', () => {
+        if (codeInput.value.trim().length > 0) {
+          codeInput.value = '';
+          updateEditorAndPreview();
+          showToast('Canvas cleared', 'info');
+        }
+      });
+
+      document.getElementById('copy-raw-btn').addEventListener('click', () => {
+        copyTextToClipboard(codeInput.value, 'Inscription copied to clipboard!');
+      });
+
+      document.getElementById('format-code-btn').addEventListener('click', () => {
+        let val = codeInput.value.trim();
+        if (!val) return;
+        val = val.replace(/>\s*</g, '>\n<');
+        codeInput.value = val;
+        updateEditorAndPreview();
+        showToast('Geometry structured and indented', 'info');
+      });
+
+      document.getElementById('device-desktop').addEventListener('click', () => setDeviceMode('desktop'));
+      document.getElementById('device-tablet').addEventListener('click', () => setDeviceMode('tablet'));
+      document.getElementById('device-mobile').addEventListener('click', () => setDeviceMode('mobile'));
+
+      document.getElementById('refresh-preview-btn').addEventListener('click', () => {
+        updateEditorAndPreview();
+        showToast('Tapestry refreshed', 'info');
+      });
+
+      document.getElementById('popout-preview-btn').addEventListener('click', openCleanPreviewTab);
+      document.getElementById('open-isolated-btn').addEventListener('click', openCleanPreviewTab);
+      document.getElementById('generate-iframe-wrapper-btn').addEventListener('click', wrapCodeInResponsiveContainer);
+      document.getElementById('save-snippet-btn').addEventListener('click', saveCurrentSnippet);
+
+      document.getElementById('quick-preset-btn').addEventListener('click', () => {
+        templateModal.classList.remove('hidden');
+      });
+
+      document.querySelectorAll('.template-card').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const type = btn.getAttribute('data-template');
+          if (TEMPLATES[type]) {
+            codeInput.value = TEMPLATES[type];
+            snippetTitleInput.value = btn.querySelector('h4').innerText;
+            snippetTagsInput.value = type + ', motif';
+            updateEditorAndPreview();
+            closeAllModals();
+            showToast(`Loaded ${type} motif!`, 'success');
+          }
+        });
+      });
+
+      document.getElementById('share-export-btn').addEventListener('click', prepareShareHub);
+      document.getElementById('copy-share-link-btn').addEventListener('click', () => {
+        copyTextToClipboard(shareLinkInput.value, 'Share URI copied to clipboard!');
+      });
+      document.getElementById('copy-iframe-snippet-btn').addEventListener('click', () => {
+        copyTextToClipboard(shareIframeSnippet.value, 'Iframe embed code copied!');
+      });
+      document.getElementById('download-html-file-btn').addEventListener('click', downloadAsHtmlFile);
+
+      document.getElementById('open-library-btn').addEventListener('click', () => {
+        renderLibrary();
+        libraryModal.classList.remove('hidden');
+      });
+
+      document.getElementById('library-search-input').addEventListener('input', (e) => {
+        renderLibrary(e.target.value);
+      });
+
+      document.getElementById('clear-library-btn').addEventListener('click', () => {
+        if (state.savedSnippets.length === 0) return;
+        state.savedSnippets = [];
+        saveLibraryToStorage();
+        renderLibrary();
+        showToast('Folio emptied', 'info');
+      });
+
+      document.querySelectorAll('.modal-close-btn').forEach(btn => {
+        btn.addEventListener('click', closeAllModals);
+      });
+
+      [templateModal, shareModal, libraryModal].forEach(modal => {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            closeAllModals();
+          }
+        });
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeAllModals();
+        }
+      });
+    }
+  </script>
+</body>
+</html>
